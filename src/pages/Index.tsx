@@ -225,7 +225,7 @@ const Index = () => {
                 </span>
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
-                  className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 text-red-800 hover:text-red-400 transition-all ml-1"
+                  className="shrink-0 p-0.5 text-red-800 hover:text-red-400 transition-all ml-1"
                 >
                   <Icon name="X" size={11} />
                 </button>
@@ -297,6 +297,14 @@ const Index = () => {
                 >
                   <Icon name="Save" size={12} />
                   СОХРАНИТЬ
+                </button>
+                <button
+                  onClick={() => activeId && deleteNote(activeId)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded border border-red-800 text-red-700 bg-transparent hover:bg-red-900/20 hover:border-red-500 hover:text-red-400 active:scale-95 transition-all duration-150 text-xs font-orbitron tracking-widest"
+                  style={{ boxShadow: "0 0 8px rgba(255,0,0,0.15)" }}
+                >
+                  <Icon name="Trash2" size={12} />
+                  УДАЛИТЬ
                 </button>
               </div>
             </div>

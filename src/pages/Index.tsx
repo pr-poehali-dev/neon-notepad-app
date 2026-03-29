@@ -183,22 +183,26 @@ const Index = () => {
             <span className="font-mono-tech text-xs text-cyan-900">
               {notes.length} ЗАПИСЕЙ
             </span>
-            <button
-              onClick={newNote}
-              className="flex items-center gap-1.5 py-1.5 px-4 rounded border border-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 active:scale-95 transition-all duration-150 group"
-              style={{ boxShadow: "0 0 10px rgba(0,255,255,0.15)" }}
-            >
-              <Icon name="Plus" size={13} className="text-cyan-400 group-hover:rotate-90 transition-transform duration-200" />
-              <span className="font-orbitron text-xs tracking-widest text-cyan-400">НОВАЯ</span>
-            </button>
           </div>
         </div>
 
         {/* Notes tabs row */}
         <div className="flex items-center gap-1 px-4 py-2 overflow-x-auto scrollbar-none">
+          {/* New note + button */}
+          <button
+            onClick={newNote}
+            className="shrink-0 flex items-center justify-center w-7 h-7 rounded border border-cyan-800 bg-black/20 hover:border-cyan-400 hover:bg-cyan-400/10 active:scale-95 transition-all duration-150 group"
+            style={{ boxShadow: "0 0 6px rgba(0,255,255,0.1)" }}
+            title="Новая заметка"
+          >
+            <Icon name="Plus" size={13} className="text-cyan-700 group-hover:text-cyan-400 group-hover:rotate-90 transition-all duration-200" />
+          </button>
+
+          <div className="w-px h-4 bg-cyan-900/50 mx-1 shrink-0" />
+
           {filtered.length === 0 && (
             <span className="font-mono-tech text-xs text-cyan-900 px-2">
-              {search ? "[ НЕТ СОВПАДЕНИЙ ]" : "[ НЕТ ЗАМЕТОК — СОЗДАЙ ПЕРВУЮ ]"}
+              {search ? "[ НЕТ СОВПАДЕНИЙ ]" : "[ НЕТ ЗАМЕТОК — НАЖМИ + ]"}
             </span>
           )}
           {filtered.map((note) => {

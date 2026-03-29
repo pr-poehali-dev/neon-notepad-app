@@ -7,32 +7,7 @@ interface Note {
   content: string;
   createdAt: number;
   updatedAt: number;
-  color: "cyan" | "magenta" | "green";
 }
-
-const COLORS = {
-  cyan: {
-    border: "border-cyan-400",
-    shadow: "shadow-[0_0_12px_rgba(0,255,255,0.5)]",
-    text: "text-cyan-400",
-    glow: "rgba(0,255,255,0.8)",
-    dot: "bg-cyan-400",
-  },
-  magenta: {
-    border: "border-fuchsia-500",
-    shadow: "shadow-[0_0_12px_rgba(255,0,255,0.5)]",
-    text: "text-fuchsia-400",
-    glow: "rgba(255,0,255,0.8)",
-    dot: "bg-fuchsia-400",
-  },
-  green: {
-    border: "border-emerald-400",
-    shadow: "shadow-[0_0_12px_rgba(0,255,136,0.5)]",
-    text: "text-emerald-400",
-    glow: "rgba(0,255,136,0.8)",
-    dot: "bg-emerald-400",
-  },
-};
 
 const STORAGE_KEY = "neon-notes-v1";
 
@@ -64,7 +39,6 @@ const Index = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
-  const [editColor, setEditColor] = useState<Note["color"]>("cyan");
   const [saved, setSaved] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -81,7 +55,6 @@ const Index = () => {
     setActiveId(note.id);
     setEditTitle(note.title);
     setEditContent(note.content);
-    setEditColor(note.color);
     setSaved(false);
   }
 
@@ -92,7 +65,6 @@ const Index = () => {
       content: "",
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      color: "cyan",
     };
     const updated = [note, ...notes];
     setNotes(updated);
@@ -100,7 +72,6 @@ const Index = () => {
     setActiveId(note.id);
     setEditTitle("");
     setEditContent("");
-    setEditColor("cyan");
     setSaved(false);
     setTimeout(() => titleRef.current?.focus(), 50);
   }
@@ -109,13 +80,7 @@ const Index = () => {
     if (!activeId) return;
     const updated = notes.map((n) =>
       n.id === activeId
-        ? {
-            ...n,
-            title: editTitle || "Без названия",
-            content: editContent,
-            color: editColor,
-            updatedAt: Date.now(),
-          }
+        ? { ...n, title: editTitle || "Без названия", content: editContent, updatedAt: Date.now() }
         : n
     );
     setNotes(updated);
@@ -140,9 +105,7 @@ const Index = () => {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeId, editTitle, editContent, editColor, notes]);
-
-  const col = activeId ? COLORS[editColor] : COLORS["cyan"];
+  }, [activeId, editTitle, editContent, notes]);
 
   return (
     <div
@@ -179,10 +142,8 @@ const Index = () => {
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
-            <span className="font-mono-tech text-xs text-cyan-900">
-              {notes.length} ЗАПИСЕЙ
-            </span>
+          <div className="ml-auto">
+            <span className="font-mono-tech text-xs text-cyan-900">{notes.length} ЗАПИСЕЙ</span>
           </div>
         </div>
 
@@ -206,7 +167,6 @@ const Index = () => {
             </span>
           )}
           {filtered.map((note) => {
-            const c = COLORS[note.color];
             const isActive = note.id === activeId;
             return (
               <div
@@ -214,15 +174,11 @@ const Index = () => {
                 onClick={() => openNote(note)}
                 className={`group relative flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer border transition-all duration-200 shrink-0 animate-fade-in ${
                   isActive
-                    ? `${c.border} bg-black/70 ${c.shadow}`
+                    ? "border-cyan-400 bg-black/70 shadow-[0_0_12px_rgba(0,255,255,0.4)]"
                     : "border-cyan-900/30 hover:border-cyan-700/60 bg-black/20 hover:bg-black/40"
                 }`}
               >
-                <div
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`}
-                  style={{ boxShadow: isActive ? `0 0 5px ${c.glow}` : "none" }}
-                />
-                <span className={`font-rajdhani font-semibold text-sm whitespace-nowrap max-w-[120px] truncate ${isActive ? c.text : "text-slate-400"}`}>
+                <span className={`font-rajdhani font-semibold text-sm whitespace-nowrap max-w-[140px] truncate ${isActive ? "text-cyan-400" : "text-slate-400"}`}>
                   {note.title || "Без названия"}
                 </span>
                 <span className="font-mono-tech text-xs text-cyan-900 hidden group-hover:inline shrink-0">
@@ -259,22 +215,6 @@ const Index = () => {
           <>
             {/* Editor header */}
             <div className="px-6 py-3 border-b border-cyan-900/40 bg-black/30 backdrop-blur-sm flex items-center gap-4">
-              {/* Color picker */}
-              <div className="flex items-center gap-2">
-                {(["cyan", "magenta", "green"] as Note["color"][]).map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setEditColor(c)}
-                    className={`w-3 h-3 rounded-full transition-all duration-150 ${COLORS[c].dot} ${
-                      editColor === c ? "scale-125 ring-1 ring-white/30" : "opacity-30 hover:opacity-60"
-                    }`}
-                    style={{ boxShadow: editColor === c ? `0 0 8px ${COLORS[c].glow}` : "none" }}
-                  />
-                ))}
-              </div>
-
-              <div className={`h-4 w-px opacity-30 ${col.border}`} />
-
               {/* Title input */}
               <input
                 ref={titleRef}
@@ -282,8 +222,8 @@ const Index = () => {
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 placeholder="НАЗВАНИЕ ЗАМЕТКИ..."
-                className={`flex-1 bg-transparent outline-none font-orbitron text-sm tracking-wider placeholder-slate-800 ${col.text}`}
-                style={{ textShadow: `0 0 8px ${col.glow}` }}
+                className="flex-1 bg-transparent outline-none font-orbitron text-sm tracking-wider placeholder-slate-800 text-cyan-400"
+                style={{ textShadow: "0 0 8px rgba(0,255,255,0.8)" }}
               />
 
               {/* Actions */}
@@ -297,19 +237,19 @@ const Index = () => {
                 <span className="font-mono-tech text-xs text-cyan-900 hidden md:inline">CTRL+S</span>
                 <button
                   onClick={saveNote}
-                  className={`flex items-center justify-center w-8 h-8 rounded border ${col.border} ${col.text} bg-transparent hover:bg-white/5 active:scale-95 transition-all duration-150`}
-                  style={{ boxShadow: `0 0 8px ${col.glow}40` }}
+                  className="flex items-center justify-center w-8 h-8 rounded border border-cyan-400 text-cyan-400 bg-transparent hover:bg-white/5 active:scale-95 transition-all duration-150"
+                  style={{ boxShadow: "0 0 8px rgba(0,255,255,0.4)" }}
                   title="Сохранить (Ctrl+S)"
                 >
                   <Icon name="Save" size={14} />
                 </button>
                 <button
                   onClick={() => activeId && setConfirmDeleteId(activeId)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded border border-red-800 text-red-700 bg-transparent hover:bg-red-900/20 hover:border-red-500 hover:text-red-400 active:scale-95 transition-all duration-150 text-xs font-orbitron tracking-widest"
+                  className="flex items-center justify-center w-8 h-8 rounded border border-red-800 text-red-700 bg-transparent hover:bg-red-900/20 hover:border-red-500 hover:text-red-400 active:scale-95 transition-all duration-150"
                   style={{ boxShadow: "0 0 8px rgba(255,0,0,0.15)" }}
+                  title="Удалить заметку"
                 >
-                  <Icon name="Trash2" size={12} />
-                  УДАЛИТЬ
+                  <Icon name="Trash2" size={14} />
                 </button>
               </div>
             </div>
@@ -317,12 +257,12 @@ const Index = () => {
             {/* Textarea */}
             <div className="flex-1 relative overflow-hidden">
               <div className="absolute top-5 left-6 pointer-events-none">
-                <div className={`absolute top-0 left-0 w-5 h-px ${col.dot}`} style={{ boxShadow: `0 0 4px ${col.glow}` }} />
-                <div className={`absolute top-0 left-0 w-px h-5 ${col.dot}`} style={{ boxShadow: `0 0 4px ${col.glow}` }} />
+                <div className="absolute top-0 left-0 w-5 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
+                <div className="absolute top-0 left-0 w-px h-5 bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
               </div>
               <div className="absolute bottom-8 right-6 pointer-events-none">
-                <div className={`absolute bottom-0 right-0 w-5 h-px ${col.dot}`} style={{ boxShadow: `0 0 4px ${col.glow}` }} />
-                <div className={`absolute bottom-0 right-0 w-px h-5 ${col.dot}`} style={{ boxShadow: `0 0 4px ${col.glow}` }} />
+                <div className="absolute bottom-0 right-0 w-5 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
+                <div className="absolute bottom-0 right-0 w-px h-5 bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
               </div>
 
               <textarea
@@ -330,7 +270,7 @@ const Index = () => {
                 onChange={(e) => setEditContent(e.target.value)}
                 placeholder="> ВВЕДИ ТЕКСТ ЗАМЕТКИ..."
                 className="w-full h-full resize-none bg-transparent outline-none font-mono-tech text-sm leading-relaxed text-slate-300 placeholder-slate-800 px-10 py-8"
-                style={{ caretColor: col.glow }}
+                style={{ caretColor: "rgba(0,255,255,0.8)" }}
               />
 
               <div className="absolute bottom-3 right-10 font-mono-tech text-xs text-cyan-900 pointer-events-none">
@@ -341,7 +281,7 @@ const Index = () => {
             {/* Status bar */}
             <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-800/30 to-transparent" />
             <div className="px-6 py-1.5 flex items-center gap-4 bg-black/20">
-              <span className={`font-mono-tech text-xs ${col.text} animate-pulse-slow`} style={{ textShadow: `0 0 6px ${col.glow}` }}>
+              <span className="font-mono-tech text-xs text-cyan-400 animate-pulse-slow" style={{ textShadow: "0 0 6px rgba(0,255,255,0.8)" }}>
                 ● ACTIVE
               </span>
               <span className="font-mono-tech text-xs text-cyan-900">
@@ -360,21 +300,19 @@ const Index = () => {
       {/* ── CONFIRM DELETE MODAL ── */}
       {confirmDeleteId && (() => {
         const target = notes.find((n) => n.id === confirmDeleteId);
-        const c = target ? COLORS[target.color] : COLORS.cyan;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
             <div
-              className={`relative w-full max-w-sm mx-4 rounded border ${c.border} bg-black/90 p-6`}
-              style={{ boxShadow: `0 0 30px ${c.glow}40, 0 0 60px rgba(0,0,0,0.8)` }}
+              className="relative w-full max-w-sm mx-4 rounded border border-cyan-400 bg-black/90 p-6"
+              style={{ boxShadow: "0 0 30px rgba(0,255,255,0.2), 0 0 60px rgba(0,0,0,0.8)" }}
             >
-              {/* Corner decorations */}
               <div className="absolute top-0 left-0 w-4 h-4 pointer-events-none">
-                <div className={`absolute top-0 left-0 w-4 h-px ${c.dot}`} style={{ boxShadow: `0 0 4px ${c.glow}` }} />
-                <div className={`absolute top-0 left-0 w-px h-4 ${c.dot}`} style={{ boxShadow: `0 0 4px ${c.glow}` }} />
+                <div className="absolute top-0 left-0 w-4 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
+                <div className="absolute top-0 left-0 w-px h-4 bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
               </div>
               <div className="absolute bottom-0 right-0 w-4 h-4 pointer-events-none">
-                <div className={`absolute bottom-0 right-0 w-4 h-px ${c.dot}`} style={{ boxShadow: `0 0 4px ${c.glow}` }} />
-                <div className={`absolute bottom-0 right-0 w-px h-4 ${c.dot}`} style={{ boxShadow: `0 0 4px ${c.glow}` }} />
+                <div className="absolute bottom-0 right-0 w-4 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
+                <div className="absolute bottom-0 right-0 w-px h-4 bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
               </div>
 
               <div className="flex items-center gap-3 mb-4">
@@ -382,10 +320,8 @@ const Index = () => {
                 <span className="font-orbitron text-sm tracking-widest text-red-400">УДАЛЕНИЕ ФАЙЛА</span>
               </div>
 
-              <p className="font-mono-tech text-sm text-slate-400 mb-1">
-                Удалить заметку:
-              </p>
-              <p className={`font-rajdhani font-semibold text-base mb-5 ${c.text} truncate`} style={{ textShadow: `0 0 6px ${c.glow}` }}>
+              <p className="font-mono-tech text-sm text-slate-400 mb-1">Удалить заметку:</p>
+              <p className="font-rajdhani font-semibold text-base mb-5 text-cyan-400 truncate" style={{ textShadow: "0 0 6px rgba(0,255,255,0.8)" }}>
                 "{target?.title || "Без названия"}"
               </p>
               <p className="font-mono-tech text-xs text-slate-700 mb-6">

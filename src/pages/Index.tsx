@@ -141,94 +141,64 @@ const Index = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [activeId, editTitle, editContent, editColor, notes]);
 
-  const col = COLORS[editColor];
+  const col = activeId ? COLORS[editColor] : COLORS["cyan"];
 
   return (
     <div
-      className="scanlines flex h-screen w-screen overflow-hidden cyber-grid"
+      className="scanlines flex flex-col h-screen w-screen overflow-hidden cyber-grid"
       style={{ background: "var(--dark-bg)" }}
     >
       {/* Ambient glow */}
-      <div
-        className="pointer-events-none fixed top-0 left-0 w-72 h-72 rounded-full opacity-[0.07] blur-3xl"
-        style={{ background: "var(--neon-cyan)" }}
-      />
-      <div
-        className="pointer-events-none fixed bottom-0 right-0 w-72 h-72 rounded-full opacity-[0.07] blur-3xl"
-        style={{ background: "var(--neon-magenta)" }}
-      />
+      <div className="pointer-events-none fixed top-0 left-0 w-72 h-72 rounded-full opacity-[0.07] blur-3xl" style={{ background: "var(--neon-cyan)" }} />
+      <div className="pointer-events-none fixed bottom-0 right-0 w-72 h-72 rounded-full opacity-[0.07] blur-3xl" style={{ background: "var(--neon-magenta)" }} />
 
-      {/* ── SIDEBAR ── */}
-      <aside className="relative flex flex-col w-72 shrink-0 border-r border-cyan-900/60 bg-black/50 backdrop-blur-sm z-10">
-        {/* Header */}
-        <div className="px-5 pt-5 pb-4 border-b border-cyan-900/40">
-          <div className="flex items-center gap-2 mb-5">
-            <div
-              className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse-slow"
-              style={{ boxShadow: "0 0 8px #00ffff" }}
-            />
-            <span
-              className="font-orbitron text-xs tracking-[0.3em] text-cyan-400 animate-flicker"
-              style={{ textShadow: "0 0 10px #00ffff" }}
-            >
+      {/* ── TOP NAV ── */}
+      <header className="shrink-0 border-b border-cyan-900/60 bg-black/50 backdrop-blur-sm z-10">
+        {/* Brand + controls row */}
+        <div className="flex items-center gap-4 px-6 py-3 border-b border-cyan-900/30">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse-slow" style={{ boxShadow: "0 0 8px #00ffff" }} />
+            <span className="font-orbitron text-xs tracking-[0.3em] text-cyan-400 animate-flicker" style={{ textShadow: "0 0 10px #00ffff" }}>
               NEON NOTES
             </span>
-            <div className="ml-auto font-mono-tech text-xs text-cyan-900">v1.0</div>
+            <span className="font-mono-tech text-xs text-cyan-900 ml-1">v1.0</span>
           </div>
 
+          <div className="h-4 w-px bg-cyan-900/60 mx-1" />
+
           {/* Search */}
-          <div className="relative group">
-            <Icon
-              name="Search"
-              size={13}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-700 group-focus-within:text-cyan-400 transition-colors z-10"
-            />
+          <div className="relative group flex-1 max-w-xs">
+            <Icon name="Search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-700 group-focus-within:text-cyan-400 transition-colors z-10" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ПОИСК..."
-              className="w-full bg-black/40 border border-cyan-900/50 focus:border-cyan-400 rounded pl-8 pr-3 py-2 text-xs font-mono-tech text-cyan-300 placeholder-cyan-900 outline-none transition-all duration-200 focus:shadow-[0_0_8px_rgba(0,255,255,0.3)]"
+              className="w-full bg-black/40 border border-cyan-900/50 focus:border-cyan-400 rounded pl-8 pr-3 py-1.5 text-xs font-mono-tech text-cyan-300 placeholder-cyan-900 outline-none transition-all duration-200 focus:shadow-[0_0_8px_rgba(0,255,255,0.3)]"
             />
+          </div>
+
+          <div className="ml-auto flex items-center gap-3">
+            <span className="font-mono-tech text-xs text-cyan-900">
+              {notes.length} ЗАПИСЕЙ
+            </span>
+            <button
+              onClick={newNote}
+              className="flex items-center gap-1.5 py-1.5 px-4 rounded border border-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 active:scale-95 transition-all duration-150 group"
+              style={{ boxShadow: "0 0 10px rgba(0,255,255,0.15)" }}
+            >
+              <Icon name="Plus" size={13} className="text-cyan-400 group-hover:rotate-90 transition-transform duration-200" />
+              <span className="font-orbitron text-xs tracking-widest text-cyan-400">НОВАЯ</span>
+            </button>
           </div>
         </div>
 
-        {/* New note btn */}
-        <div className="px-4 py-3 border-b border-cyan-900/30">
-          <button
-            onClick={newNote}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded border border-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 active:scale-95 transition-all duration-150 group"
-            style={{ boxShadow: "0 0 12px rgba(0,255,255,0.15)" }}
-          >
-            <Icon
-              name="Plus"
-              size={14}
-              className="text-cyan-400 group-hover:rotate-90 transition-transform duration-200"
-            />
-            <span className="font-orbitron text-xs tracking-widest text-cyan-400">
-              НОВАЯ ЗАМЕТКА
-            </span>
-          </button>
-        </div>
-
-        {/* Counter */}
-        <div className="px-5 py-2 flex items-center gap-2">
-          <span className="font-mono-tech text-xs text-cyan-900">
-            {filtered.length > 0
-              ? `${filtered.length} / ${notes.length} ЗАПИСЕЙ`
-              : "НЕТ ЗАПИСЕЙ"}
-          </span>
-          <div className="h-px flex-1 bg-gradient-to-r from-cyan-900/0 via-cyan-800/40 to-cyan-900/0" />
-        </div>
-
-        {/* Notes list */}
-        <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5">
+        {/* Notes tabs row */}
+        <div className="flex items-center gap-1 px-4 py-2 overflow-x-auto scrollbar-none">
           {filtered.length === 0 && (
-            <div className="text-center py-12">
-              <div className="font-mono-tech text-xs text-cyan-900 leading-relaxed">
-                {search ? "[ НЕТ СОВПАДЕНИЙ ]" : "[ СПИСОК ПУСТ ]"}
-              </div>
-            </div>
+            <span className="font-mono-tech text-xs text-cyan-900 px-2">
+              {search ? "[ НЕТ СОВПАДЕНИЙ ]" : "[ НЕТ ЗАМЕТОК — СОЗДАЙ ПЕРВУЮ ]"}
+            </span>
           )}
           {filtered.map((note) => {
             const c = COLORS[note.color];
@@ -237,83 +207,53 @@ const Index = () => {
               <div
                 key={note.id}
                 onClick={() => openNote(note)}
-                className={`group relative rounded cursor-pointer border transition-all duration-200 p-3 animate-fade-in ${
+                className={`group relative flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer border transition-all duration-200 shrink-0 animate-fade-in ${
                   isActive
-                    ? `${c.border} bg-black/60 ${c.shadow}`
+                    ? `${c.border} bg-black/70 ${c.shadow}`
                     : "border-cyan-900/30 hover:border-cyan-700/60 bg-black/20 hover:bg-black/40"
                 }`}
               >
-                <div className="flex items-start gap-2">
-                  <div
-                    className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`}
-                    style={{ boxShadow: `0 0 4px ${c.glow}` }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className={`font-rajdhani font-semibold text-sm truncate ${
-                        isActive ? c.text : "text-slate-300"
-                      }`}
-                    >
-                      {note.title || "Без названия"}
-                    </div>
-                    <div className="font-mono-tech text-xs text-slate-700 truncate mt-0.5">
-                      {note.content || "—"}
-                    </div>
-                    <div className="font-mono-tech text-xs text-cyan-900 mt-1">
-                      {formatDate(note.updatedAt)}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteNote(note.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 text-red-800 hover:text-red-400 transition-all"
-                  >
-                    <Icon name="X" size={12} />
-                  </button>
-                </div>
+                <div
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`}
+                  style={{ boxShadow: isActive ? `0 0 5px ${c.glow}` : "none" }}
+                />
+                <span className={`font-rajdhani font-semibold text-sm whitespace-nowrap max-w-[120px] truncate ${isActive ? c.text : "text-slate-400"}`}>
+                  {note.title || "Без названия"}
+                </span>
+                <span className="font-mono-tech text-xs text-cyan-900 hidden group-hover:inline shrink-0">
+                  {formatDate(note.updatedAt)}
+                </span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                  className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 text-red-800 hover:text-red-400 transition-all ml-1"
+                >
+                  <Icon name="X" size={11} />
+                </button>
               </div>
             );
           })}
         </div>
-
-        {/* Bottom status */}
-        <div
-          className="h-px w-full bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent"
-          style={{ boxShadow: "0 0 6px rgba(0,255,255,0.2)" }}
-        />
-        <div className="px-5 py-2 flex items-center gap-2">
-          <div className="w-1 h-1 bg-cyan-700 rounded-full animate-pulse-slow" />
-          <span className="font-mono-tech text-xs text-cyan-900">SYS.LOCAL.STORAGE</span>
-        </div>
-      </aside>
+      </header>
 
       {/* ── EDITOR ── */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
         {!activeId ? (
-          /* Empty state */
           <div className="flex-1 flex flex-col items-center justify-center gap-6 select-none">
             <div className="relative">
-              <div
-                className="w-24 h-24 rounded-full border border-cyan-900/40 flex items-center justify-center"
-                style={{ boxShadow: "0 0 30px rgba(0,255,255,0.04)" }}
-              >
+              <div className="w-24 h-24 rounded-full border border-cyan-900/40 flex items-center justify-center" style={{ boxShadow: "0 0 30px rgba(0,255,255,0.04)" }}>
                 <Icon name="FileText" size={36} className="text-cyan-900" />
               </div>
               <div className="absolute -inset-4 rounded-full border border-cyan-900/15 animate-pulse-slow" />
             </div>
             <div className="text-center space-y-2">
-              <p className="font-orbitron text-sm tracking-widest text-cyan-800">
-                ВЫБЕРИ ЗАМЕТКУ
-              </p>
+              <p className="font-orbitron text-sm tracking-widest text-cyan-800">ВЫБЕРИ ЗАМЕТКУ</p>
               <p className="font-mono-tech text-xs text-cyan-900">или создай новую</p>
             </div>
           </div>
         ) : (
           <>
             {/* Editor header */}
-            <div className="px-6 py-4 border-b border-cyan-900/40 bg-black/30 backdrop-blur-sm flex items-center gap-4">
+            <div className="px-6 py-3 border-b border-cyan-900/40 bg-black/30 backdrop-blur-sm flex items-center gap-4">
               {/* Color picker */}
               <div className="flex items-center gap-2">
                 {(["cyan", "magenta", "green"] as Note["color"][]).map((c) => (
@@ -321,13 +261,9 @@ const Index = () => {
                     key={c}
                     onClick={() => setEditColor(c)}
                     className={`w-3 h-3 rounded-full transition-all duration-150 ${COLORS[c].dot} ${
-                      editColor === c
-                        ? "scale-125 ring-1 ring-white/30"
-                        : "opacity-30 hover:opacity-60"
+                      editColor === c ? "scale-125 ring-1 ring-white/30" : "opacity-30 hover:opacity-60"
                     }`}
-                    style={{
-                      boxShadow: editColor === c ? `0 0 8px ${COLORS[c].glow}` : "none",
-                    }}
+                    style={{ boxShadow: editColor === c ? `0 0 8px ${COLORS[c].glow}` : "none" }}
                   />
                 ))}
               </div>
@@ -353,9 +289,7 @@ const Index = () => {
                     СОХРАНЕНО
                   </span>
                 )}
-                <span className="font-mono-tech text-xs text-cyan-900 hidden md:inline">
-                  CTRL+S
-                </span>
+                <span className="font-mono-tech text-xs text-cyan-900 hidden md:inline">CTRL+S</span>
                 <button
                   onClick={saveNote}
                   className={`flex items-center gap-1.5 px-4 py-1.5 rounded border ${col.border} ${col.text} bg-transparent hover:bg-white/5 active:scale-95 transition-all duration-150 text-xs font-orbitron tracking-widest`}
@@ -369,26 +303,13 @@ const Index = () => {
 
             {/* Textarea */}
             <div className="flex-1 relative overflow-hidden">
-              {/* Corner decorations */}
               <div className="absolute top-5 left-6 pointer-events-none">
-                <div
-                  className={`absolute top-0 left-0 w-5 h-px ${col.dot}`}
-                  style={{ boxShadow: `0 0 4px ${col.glow}` }}
-                />
-                <div
-                  className={`absolute top-0 left-0 w-px h-5 ${col.dot}`}
-                  style={{ boxShadow: `0 0 4px ${col.glow}` }}
-                />
+                <div className={`absolute top-0 left-0 w-5 h-px ${col.dot}`} style={{ boxShadow: `0 0 4px ${col.glow}` }} />
+                <div className={`absolute top-0 left-0 w-px h-5 ${col.dot}`} style={{ boxShadow: `0 0 4px ${col.glow}` }} />
               </div>
               <div className="absolute bottom-8 right-6 pointer-events-none">
-                <div
-                  className={`absolute bottom-0 right-0 w-5 h-px ${col.dot}`}
-                  style={{ boxShadow: `0 0 4px ${col.glow}` }}
-                />
-                <div
-                  className={`absolute bottom-0 right-0 w-px h-5 ${col.dot}`}
-                  style={{ boxShadow: `0 0 4px ${col.glow}` }}
-                />
+                <div className={`absolute bottom-0 right-0 w-5 h-px ${col.dot}`} style={{ boxShadow: `0 0 4px ${col.glow}` }} />
+                <div className={`absolute bottom-0 right-0 w-px h-5 ${col.dot}`} style={{ boxShadow: `0 0 4px ${col.glow}` }} />
               </div>
 
               <textarea
@@ -407,10 +328,7 @@ const Index = () => {
             {/* Status bar */}
             <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-800/30 to-transparent" />
             <div className="px-6 py-1.5 flex items-center gap-4 bg-black/20">
-              <span
-                className={`font-mono-tech text-xs ${col.text} animate-pulse-slow`}
-                style={{ textShadow: `0 0 6px ${col.glow}` }}
-              >
+              <span className={`font-mono-tech text-xs ${col.text} animate-pulse-slow`} style={{ textShadow: `0 0 6px ${col.glow}` }}>
                 ● ACTIVE
               </span>
               <span className="font-mono-tech text-xs text-cyan-900">

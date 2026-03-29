@@ -1,54 +1,260 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
+import * as api from "@/api";
 
+// ─── Types ───────────────────────────────────────────────
 interface Note {
-  id: string;
+  id: number;
   title: string;
   content: string;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const STORAGE_KEY = "neon-notes-v1";
+interface User {
+  userId: number;
+  username: string;
+  token: string;
+}
 
-function loadNotes(): Note[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  } catch {
-    return [];
+const SESSION_KEY = "neon-notes-session";
+
+function loadSession(): User | null {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch { return null; }
+}
+function saveSession(u: User) { localStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+// ─── NEON INPUT ───────────────────────────────────────────
+function NeonInput({ label, type = "text", value, onChange, placeholder }: {
+  label: string; type?: string; value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="font-mono-tech text-xs text-cyan-700 tracking-widest">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-black/50 border border-cyan-900/60 focus:border-cyan-400 rounded px-3 py-2.5 text-sm font-mono-tech text-cyan-300 placeholder-cyan-900 outline-none transition-all duration-200 focus:shadow-[0_0_8px_rgba(0,255,255,0.25)]"
+      />
+    </div>
+  );
+}
+
+// ─── AUTH SCREEN ──────────────────────────────────────────
+function AuthScreen({ onAuth }: { onAuth: (u: User) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const data = mode === "login"
+        ? await api.login(username, password)
+        : await api.register(username, password);
+      const user: User = { userId: data.userId, username: data.username, token: data.token };
+      saveSession(user);
+      onAuth(user);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setLoading(false);
+    }
   }
+
+  return (
+    <div className="scanlines flex flex-col items-center justify-center h-screen w-screen cyber-grid" style={{ background: "var(--dark-bg)" }}>
+      <div className="pointer-events-none fixed top-0 left-0 w-72 h-72 rounded-full opacity-[0.07] blur-3xl" style={{ background: "var(--neon-cyan)" }} />
+      <div className="pointer-events-none fixed bottom-0 right-0 w-72 h-72 rounded-full opacity-[0.07] blur-3xl" style={{ background: "var(--neon-magenta)" }} />
+
+      <div className="relative w-full max-w-sm mx-4">
+        {/* Corner decorations */}
+        <div className="absolute top-0 left-0 w-5 h-5 pointer-events-none z-10">
+          <div className="absolute top-0 left-0 w-5 h-px bg-cyan-400" style={{ boxShadow: "0 0 6px #00ffff" }} />
+          <div className="absolute top-0 left-0 w-px h-5 bg-cyan-400" style={{ boxShadow: "0 0 6px #00ffff" }} />
+        </div>
+        <div className="absolute bottom-0 right-0 w-5 h-5 pointer-events-none z-10">
+          <div className="absolute bottom-0 right-0 w-5 h-px bg-cyan-400" style={{ boxShadow: "0 0 6px #00ffff" }} />
+          <div className="absolute bottom-0 right-0 w-px h-5 bg-cyan-400" style={{ boxShadow: "0 0 6px #00ffff" }} />
+        </div>
+
+        <div className="border border-cyan-900/60 bg-black/70 backdrop-blur-sm rounded p-8" style={{ boxShadow: "0 0 40px rgba(0,255,255,0.05)" }}>
+          {/* Logo */}
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse-slow" style={{ boxShadow: "0 0 8px #00ffff" }} />
+            <span className="font-orbitron text-sm tracking-[0.3em] text-cyan-400 animate-flicker" style={{ textShadow: "0 0 10px #00ffff" }}>
+              NEON NOTES
+            </span>
+          </div>
+
+          {/* Mode tabs */}
+          <div className="flex gap-1 mb-6 border border-cyan-900/40 rounded p-1">
+            {(["login", "register"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => { setMode(m); setError(""); }}
+                className={`flex-1 py-1.5 rounded font-orbitron text-xs tracking-widest transition-all duration-150 ${
+                  mode === m
+                    ? "bg-cyan-400/15 text-cyan-400 border border-cyan-400/40"
+                    : "text-cyan-900 hover:text-cyan-700"
+                }`}
+                style={mode === m ? { boxShadow: "0 0 8px rgba(0,255,255,0.2)" } : {}}
+              >
+                {m === "login" ? "ВХОД" : "РЕГИСТРАЦИЯ"}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={submit} className="space-y-4">
+            <NeonInput label="ЛОГИН" value={username} onChange={setUsername} placeholder="введи логин..." />
+            <NeonInput label="ПАРОЛЬ" type="password" value={password} onChange={setPassword} placeholder="введи пароль..." />
+
+            {error && (
+              <div className="flex items-center gap-2 p-2.5 rounded border border-red-800/60 bg-red-900/10">
+                <Icon name="AlertTriangle" size={13} className="text-red-500 shrink-0" />
+                <span className="font-mono-tech text-xs text-red-400">{error}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 mt-2 rounded border border-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 active:scale-95 transition-all font-orbitron text-xs tracking-widest text-cyan-400 disabled:opacity-50"
+              style={{ boxShadow: "0 0 12px rgba(0,255,255,0.15)" }}
+            >
+              {loading ? "[ ЗАГРУЗКА... ]" : mode === "login" ? "[ ВОЙТИ ]" : "[ СОЗДАТЬ АККАУНТ ]"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function saveNotes(notes: Note[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+// ─── CHANGE PASSWORD MODAL ────────────────────────────────
+function ChangePasswordModal({ userId, onClose }: { userId: number; onClose: () => void }) {
+  const [oldPwd, setOldPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (newPwd !== confirmPwd) return setError("Пароли не совпадают");
+    setLoading(true);
+    try {
+      await api.changePassword(userId, oldPwd, newPwd);
+      setSuccess(true);
+      setTimeout(onClose, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-sm mx-4 rounded border border-cyan-400 bg-black/90 p-6" style={{ boxShadow: "0 0 30px rgba(0,255,255,0.2)" }}>
+        <div className="absolute top-0 left-0 w-4 h-4 pointer-events-none">
+          <div className="absolute top-0 left-0 w-4 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px #00ffff" }} />
+          <div className="absolute top-0 left-0 w-px h-4 bg-cyan-400" style={{ boxShadow: "0 0 4px #00ffff" }} />
+        </div>
+        <div className="absolute bottom-0 right-0 w-4 h-4 pointer-events-none">
+          <div className="absolute bottom-0 right-0 w-4 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px #00ffff" }} />
+          <div className="absolute bottom-0 right-0 w-px h-4 bg-cyan-400" style={{ boxShadow: "0 0 4px #00ffff" }} />
+        </div>
+
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Icon name="KeyRound" size={16} className="text-cyan-400" />
+            <span className="font-orbitron text-sm tracking-widest text-cyan-400">СМЕНА ПАРОЛЯ</span>
+          </div>
+          <button onClick={onClose} className="text-cyan-900 hover:text-cyan-600 transition-colors">
+            <Icon name="X" size={16} />
+          </button>
+        </div>
+
+        {success ? (
+          <div className="flex items-center gap-2 py-4 justify-center">
+            <Icon name="Check" size={16} className="text-emerald-400" />
+            <span className="font-mono-tech text-sm text-emerald-400">ПАРОЛЬ ИЗМЕНЁН</span>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-4">
+            <NeonInput label="ТЕКУЩИЙ ПАРОЛЬ" type="password" value={oldPwd} onChange={setOldPwd} />
+            <NeonInput label="НОВЫЙ ПАРОЛЬ" type="password" value={newPwd} onChange={setNewPwd} />
+            <NeonInput label="ПОВТОРИ НОВЫЙ ПАРОЛЬ" type="password" value={confirmPwd} onChange={setConfirmPwd} />
+
+            {error && (
+              <div className="flex items-center gap-2 p-2.5 rounded border border-red-800/60 bg-red-900/10">
+                <Icon name="AlertTriangle" size={13} className="text-red-500 shrink-0" />
+                <span className="font-mono-tech text-xs text-red-400">{error}</span>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose} className="flex-1 py-2 rounded border border-cyan-900/60 text-cyan-800 hover:border-cyan-700 hover:text-cyan-600 transition-all font-orbitron text-xs tracking-widest">
+                ОТМЕНА
+              </button>
+              <button type="submit" disabled={loading} className="flex-1 py-2 rounded border border-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 active:scale-95 transition-all font-orbitron text-xs tracking-widest text-cyan-400 disabled:opacity-50"
+                style={{ boxShadow: "0 0 8px rgba(0,255,255,0.2)" }}>
+                {loading ? "..." : "СОХРАНИТЬ"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function formatDate(ts: number) {
-  return new Date(ts).toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
+// ─── MAIN APP ─────────────────────────────────────────────
 const Index = () => {
-  const [notes, setNotes] = useState<Note[]>(loadNotes);
+  const [user, setUser] = useState<User | null>(loadSession);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [search, setSearch] = useState("");
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [saved, setSaved] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [showChangePwd, setShowChangePwd] = useState(false);
+  const [loading, setLoading] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
-  const filtered = notes.filter(
-    (n) =>
-      n.title.toLowerCase().includes(search.toLowerCase()) ||
-      n.content.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    if (user) fetchNotes();
+  }, [user]);
 
+  async function fetchNotes() {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const data = await api.getNotes(user.userId);
+      setNotes(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filtered = notes.filter(
+    (n) => n.title.toLowerCase().includes(search.toLowerCase()) || n.content.toLowerCase().includes(search.toLowerCase())
+  );
   const activeNote = notes.find((n) => n.id === activeId) ?? null;
 
   function openNote(note: Note) {
@@ -58,136 +264,109 @@ const Index = () => {
     setSaved(false);
   }
 
-  function newNote() {
-    const note: Note = {
-      id: Date.now().toString(),
-      title: "",
-      content: "",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    const updated = [note, ...notes];
-    setNotes(updated);
-    saveNotes(updated);
-    setActiveId(note.id);
+  async function newNote() {
+    if (!user) return;
+    const note = await api.createNote(user.userId, "", "");
+    const fresh: Note = { id: note.id, title: "", content: "", createdAt: note.createdAt, updatedAt: note.updatedAt };
+    setNotes((prev) => [fresh, ...prev]);
+    setActiveId(fresh.id);
     setEditTitle("");
     setEditContent("");
     setSaved(false);
     setTimeout(() => titleRef.current?.focus(), 50);
   }
 
-  function saveNote() {
-    if (!activeId) return;
-    const updated = notes.map((n) =>
-      n.id === activeId
-        ? { ...n, title: editTitle || "Без названия", content: editContent, updatedAt: Date.now() }
-        : n
-    );
-    setNotes(updated);
-    saveNotes(updated);
+  async function saveNote() {
+    if (!activeId || !user) return;
+    const title = editTitle || "Без названия";
+    await api.updateNote(user.userId, activeId, title, editContent);
+    setNotes((prev) => prev.map((n) => n.id === activeId ? { ...n, title, content: editContent, updatedAt: new Date().toISOString() } : n));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function deleteNote(id: string) {
-    const updated = notes.filter((n) => n.id !== id);
-    setNotes(updated);
-    saveNotes(updated);
+  async function deleteNote(id: number) {
+    if (!user) return;
+    await api.removeNote(user.userId, id);
+    setNotes((prev) => prev.filter((n) => n.id !== id));
     if (activeId === id) setActiveId(null);
+  }
+
+  function logout() {
+    clearSession();
+    setUser(null);
+    setNotes([]);
+    setActiveId(null);
   }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        if (activeId) saveNote();
-      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); if (activeId) saveNote(); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [activeId, editTitle, editContent, notes]);
 
+  if (!user) return <AuthScreen onAuth={setUser} />;
+
   return (
-    <div
-      className="scanlines flex flex-col h-screen w-screen overflow-hidden cyber-grid"
-      style={{ background: "var(--dark-bg)" }}
-    >
-      {/* Ambient glow */}
+    <div className="scanlines flex flex-col h-screen w-screen overflow-hidden cyber-grid" style={{ background: "var(--dark-bg)" }}>
       <div className="pointer-events-none fixed top-0 left-0 w-72 h-72 rounded-full opacity-[0.07] blur-3xl" style={{ background: "var(--neon-cyan)" }} />
       <div className="pointer-events-none fixed bottom-0 right-0 w-72 h-72 rounded-full opacity-[0.07] blur-3xl" style={{ background: "var(--neon-magenta)" }} />
 
       {/* ── TOP NAV ── */}
       <header className="shrink-0 border-b border-cyan-900/60 bg-black/50 backdrop-blur-sm z-10">
-        {/* Brand + controls row */}
         <div className="flex items-center gap-4 px-6 py-3 border-b border-cyan-900/30">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse-slow" style={{ boxShadow: "0 0 8px #00ffff" }} />
             <span className="font-orbitron text-xs tracking-[0.3em] text-cyan-400 animate-flicker" style={{ textShadow: "0 0 10px #00ffff" }}>
               NEON NOTES
             </span>
-            <span className="font-mono-tech text-xs text-cyan-900 ml-1">v1.0</span>
           </div>
-
           <div className="h-4 w-px bg-cyan-900/60 mx-1" />
-
-          {/* Search */}
           <div className="relative group flex-1 max-w-xs">
             <Icon name="Search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-700 group-focus-within:text-cyan-400 transition-colors z-10" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="ПОИСК..."
-              className="w-full bg-black/40 border border-cyan-900/50 focus:border-cyan-400 rounded pl-8 pr-3 py-1.5 text-xs font-mono-tech text-cyan-300 placeholder-cyan-900 outline-none transition-all duration-200 focus:shadow-[0_0_8px_rgba(0,255,255,0.3)]"
-            />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ПОИСК..."
+              className="w-full bg-black/40 border border-cyan-900/50 focus:border-cyan-400 rounded pl-8 pr-3 py-1.5 text-xs font-mono-tech text-cyan-300 placeholder-cyan-900 outline-none transition-all duration-200 focus:shadow-[0_0_8px_rgba(0,255,255,0.3)]" />
           </div>
-
-          <div className="ml-auto">
-            <span className="font-mono-tech text-xs text-cyan-900">{notes.length} ЗАПИСЕЙ</span>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="font-mono-tech text-xs text-cyan-800">{user.username}</span>
+            <button onClick={() => setShowChangePwd(true)} title="Сменить пароль"
+              className="flex items-center justify-center w-7 h-7 rounded border border-cyan-900/50 text-cyan-800 hover:border-cyan-600 hover:text-cyan-500 transition-all">
+              <Icon name="KeyRound" size={13} />
+            </button>
+            <button onClick={logout} title="Выйти"
+              className="flex items-center justify-center w-7 h-7 rounded border border-cyan-900/50 text-cyan-800 hover:border-red-700 hover:text-red-500 transition-all">
+              <Icon name="LogOut" size={13} />
+            </button>
           </div>
         </div>
 
-        {/* Notes tabs row */}
+        {/* Tabs row */}
         <div className="flex items-center gap-1 px-4 py-2 overflow-x-auto scrollbar-none">
-          {/* New note + button */}
-          <button
-            onClick={newNote}
-            className="shrink-0 flex items-center justify-center w-7 h-7 rounded border border-cyan-800 bg-black/20 hover:border-cyan-400 hover:bg-cyan-400/10 active:scale-95 transition-all duration-150 group"
-            style={{ boxShadow: "0 0 6px rgba(0,255,255,0.1)" }}
-            title="Новая заметка"
-          >
+          <button onClick={newNote} title="Новая заметка"
+            className="shrink-0 flex items-center justify-center w-7 h-7 rounded border border-cyan-800 bg-black/20 hover:border-cyan-400 hover:bg-cyan-400/10 active:scale-95 transition-all group"
+            style={{ boxShadow: "0 0 6px rgba(0,255,255,0.1)" }}>
             <Icon name="Plus" size={13} className="text-cyan-700 group-hover:text-cyan-400 group-hover:rotate-90 transition-all duration-200" />
           </button>
-
           <div className="w-px h-4 bg-cyan-900/50 mx-1 shrink-0" />
-
-          {filtered.length === 0 && (
-            <span className="font-mono-tech text-xs text-cyan-900 px-2">
-              {search ? "[ НЕТ СОВПАДЕНИЙ ]" : "[ НЕТ ЗАМЕТОК — НАЖМИ + ]"}
-            </span>
+          {loading && <span className="font-mono-tech text-xs text-cyan-900 px-2 animate-pulse-slow">[ ЗАГРУЗКА... ]</span>}
+          {!loading && filtered.length === 0 && (
+            <span className="font-mono-tech text-xs text-cyan-900 px-2">{search ? "[ НЕТ СОВПАДЕНИЙ ]" : "[ НЕТ ЗАМЕТОК — НАЖМИ + ]"}</span>
           )}
           {filtered.map((note) => {
             const isActive = note.id === activeId;
             return (
-              <div
-                key={note.id}
-                onClick={() => openNote(note)}
+              <div key={note.id} onClick={() => openNote(note)}
                 className={`group relative flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer border transition-all duration-200 shrink-0 animate-fade-in ${
-                  isActive
-                    ? "border-cyan-400 bg-black/70 shadow-[0_0_12px_rgba(0,255,255,0.4)]"
-                    : "border-cyan-900/30 hover:border-cyan-700/60 bg-black/20 hover:bg-black/40"
-                }`}
-              >
+                  isActive ? "border-cyan-400 bg-black/70 shadow-[0_0_12px_rgba(0,255,255,0.4)]" : "border-cyan-900/30 hover:border-cyan-700/60 bg-black/20 hover:bg-black/40"
+                }`}>
                 <span className={`font-rajdhani font-semibold text-sm whitespace-nowrap max-w-[140px] truncate ${isActive ? "text-cyan-400" : "text-slate-400"}`}>
                   {note.title || "Без названия"}
                 </span>
-                <span className="font-mono-tech text-xs text-cyan-900 hidden group-hover:inline shrink-0">
-                  {formatDate(note.updatedAt)}
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }}
-                  className="shrink-0 p-0.5 text-red-800 hover:text-red-400 transition-all ml-1"
-                >
+                <span className="font-mono-tech text-xs text-cyan-900 hidden group-hover:inline shrink-0">{formatDate(note.updatedAt)}</span>
+                <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }}
+                  className="shrink-0 p-0.5 text-red-800 hover:text-red-400 transition-all ml-1">
                   <Icon name="X" size={11} />
                 </button>
               </div>
@@ -213,48 +392,30 @@ const Index = () => {
           </div>
         ) : (
           <>
-            {/* Editor header */}
             <div className="px-6 py-3 border-b border-cyan-900/40 bg-black/30 backdrop-blur-sm flex items-center gap-4">
-              {/* Title input */}
-              <input
-                ref={titleRef}
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="НАЗВАНИЕ ЗАМЕТКИ..."
+              <input ref={titleRef} type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="НАЗВАНИЕ ЗАМЕТКИ..."
                 className="flex-1 bg-transparent outline-none font-orbitron text-sm tracking-wider placeholder-slate-800 text-cyan-400"
-                style={{ textShadow: "0 0 8px rgba(0,255,255,0.8)" }}
-              />
-
-              {/* Actions */}
+                style={{ textShadow: "0 0 8px rgba(0,255,255,0.8)" }} />
               <div className="flex items-center gap-3 ml-auto shrink-0">
                 {saved && (
                   <span className="font-mono-tech text-xs text-emerald-400 animate-fade-in flex items-center gap-1">
-                    <Icon name="Check" size={11} />
-                    СОХРАНЕНО
+                    <Icon name="Check" size={11} /> СОХРАНЕНО
                   </span>
                 )}
                 <span className="font-mono-tech text-xs text-cyan-900 hidden md:inline">CTRL+S</span>
-                <button
-                  onClick={saveNote}
-                  className="flex items-center justify-center w-8 h-8 rounded border border-cyan-400 text-cyan-400 bg-transparent hover:bg-white/5 active:scale-95 transition-all duration-150"
-                  style={{ boxShadow: "0 0 8px rgba(0,255,255,0.4)" }}
-                  title="Сохранить (Ctrl+S)"
-                >
+                <button onClick={saveNote} title="Сохранить (Ctrl+S)"
+                  className="flex items-center justify-center w-8 h-8 rounded border border-cyan-400 text-cyan-400 bg-transparent hover:bg-white/5 active:scale-95 transition-all"
+                  style={{ boxShadow: "0 0 8px rgba(0,255,255,0.4)" }}>
                   <Icon name="Save" size={14} />
                 </button>
-                <button
-                  onClick={() => activeId && setConfirmDeleteId(activeId)}
-                  className="flex items-center justify-center w-8 h-8 rounded border border-red-800 text-red-700 bg-transparent hover:bg-red-900/20 hover:border-red-500 hover:text-red-400 active:scale-95 transition-all duration-150"
-                  style={{ boxShadow: "0 0 8px rgba(255,0,0,0.15)" }}
-                  title="Удалить заметку"
-                >
+                <button onClick={() => activeId && setConfirmDeleteId(activeId)} title="Удалить заметку"
+                  className="flex items-center justify-center w-8 h-8 rounded border border-red-800 text-red-700 bg-transparent hover:bg-red-900/20 hover:border-red-500 hover:text-red-400 active:scale-95 transition-all"
+                  style={{ boxShadow: "0 0 8px rgba(255,0,0,0.15)" }}>
                   <Icon name="Trash2" size={14} />
                 </button>
               </div>
             </div>
 
-            {/* Textarea */}
             <div className="flex-1 relative overflow-hidden">
               <div className="absolute top-5 left-6 pointer-events-none">
                 <div className="absolute top-0 left-0 w-5 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
@@ -264,29 +425,16 @@ const Index = () => {
                 <div className="absolute bottom-0 right-0 w-5 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
                 <div className="absolute bottom-0 right-0 w-px h-5 bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
               </div>
-
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                placeholder="> ВВЕДИ ТЕКСТ ЗАМЕТКИ..."
+              <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} placeholder="> ВВЕДИ ТЕКСТ ЗАМЕТКИ..."
                 className="w-full h-full resize-none bg-transparent outline-none font-mono-tech text-sm leading-relaxed text-slate-300 placeholder-slate-800 px-10 py-8"
-                style={{ caretColor: "rgba(0,255,255,0.8)" }}
-              />
-
-              <div className="absolute bottom-3 right-10 font-mono-tech text-xs text-cyan-900 pointer-events-none">
-                {editContent.length} СИМ
-              </div>
+                style={{ caretColor: "rgba(0,255,255,0.8)" }} />
+              <div className="absolute bottom-3 right-10 font-mono-tech text-xs text-cyan-900 pointer-events-none">{editContent.length} СИМ</div>
             </div>
 
-            {/* Status bar */}
             <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-800/30 to-transparent" />
             <div className="px-6 py-1.5 flex items-center gap-4 bg-black/20">
-              <span className="font-mono-tech text-xs text-cyan-400 animate-pulse-slow" style={{ textShadow: "0 0 6px rgba(0,255,255,0.8)" }}>
-                ● ACTIVE
-              </span>
-              <span className="font-mono-tech text-xs text-cyan-900">
-                {activeNote ? formatDate(activeNote.updatedAt) : "NEW"}
-              </span>
+              <span className="font-mono-tech text-xs text-cyan-400 animate-pulse-slow" style={{ textShadow: "0 0 6px rgba(0,255,255,0.8)" }}>● ACTIVE</span>
+              <span className="font-mono-tech text-xs text-cyan-900">{activeNote ? formatDate(activeNote.updatedAt) : "NEW"}</span>
               <div className="ml-auto flex items-center gap-1">
                 <div className="w-1 h-1 rounded-full bg-cyan-900" />
                 <div className="w-1 h-1 rounded-full bg-cyan-800 animate-pulse-slow" />
@@ -297,49 +445,37 @@ const Index = () => {
         )}
       </main>
 
-      {/* ── CONFIRM DELETE MODAL ── */}
+      {/* ── CONFIRM DELETE ── */}
       {confirmDeleteId && (() => {
         const target = notes.find((n) => n.id === confirmDeleteId);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-            <div
-              className="relative w-full max-w-sm mx-4 rounded border border-cyan-400 bg-black/90 p-6"
-              style={{ boxShadow: "0 0 30px rgba(0,255,255,0.2), 0 0 60px rgba(0,0,0,0.8)" }}
-            >
+            <div className="relative w-full max-w-sm mx-4 rounded border border-cyan-400 bg-black/90 p-6" style={{ boxShadow: "0 0 30px rgba(0,255,255,0.2)" }}>
               <div className="absolute top-0 left-0 w-4 h-4 pointer-events-none">
-                <div className="absolute top-0 left-0 w-4 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
-                <div className="absolute top-0 left-0 w-px h-4 bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
+                <div className="absolute top-0 left-0 w-4 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px #00ffff" }} />
+                <div className="absolute top-0 left-0 w-px h-4 bg-cyan-400" style={{ boxShadow: "0 0 4px #00ffff" }} />
               </div>
               <div className="absolute bottom-0 right-0 w-4 h-4 pointer-events-none">
-                <div className="absolute bottom-0 right-0 w-4 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
-                <div className="absolute bottom-0 right-0 w-px h-4 bg-cyan-400" style={{ boxShadow: "0 0 4px rgba(0,255,255,0.8)" }} />
+                <div className="absolute bottom-0 right-0 w-4 h-px bg-cyan-400" style={{ boxShadow: "0 0 4px #00ffff" }} />
+                <div className="absolute bottom-0 right-0 w-px h-4 bg-cyan-400" style={{ boxShadow: "0 0 4px #00ffff" }} />
               </div>
-
               <div className="flex items-center gap-3 mb-4">
                 <Icon name="AlertTriangle" size={18} className="text-red-500 shrink-0" />
                 <span className="font-orbitron text-sm tracking-widest text-red-400">УДАЛЕНИЕ ФАЙЛА</span>
               </div>
-
               <p className="font-mono-tech text-sm text-slate-400 mb-1">Удалить заметку:</p>
               <p className="font-rajdhani font-semibold text-base mb-5 text-cyan-400 truncate" style={{ textShadow: "0 0 6px rgba(0,255,255,0.8)" }}>
                 "{target?.title || "Без названия"}"
               </p>
-              <p className="font-mono-tech text-xs text-slate-700 mb-6">
-                [ ДЕЙСТВИЕ НЕОБРАТИМО. ДАННЫЕ БУДУТ УДАЛЕНЫ ]
-              </p>
-
+              <p className="font-mono-tech text-xs text-slate-700 mb-6">[ ДЕЙСТВИЕ НЕОБРАТИМО. ДАННЫЕ БУДУТ УДАЛЕНЫ ]</p>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setConfirmDeleteId(null)}
-                  className="flex-1 py-2 rounded border border-cyan-900/60 text-cyan-800 hover:border-cyan-700 hover:text-cyan-600 transition-all font-orbitron text-xs tracking-widest"
-                >
+                <button onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 py-2 rounded border border-cyan-900/60 text-cyan-800 hover:border-cyan-700 hover:text-cyan-600 transition-all font-orbitron text-xs tracking-widest">
                   ОТМЕНА
                 </button>
-                <button
-                  onClick={() => { deleteNote(confirmDeleteId); setConfirmDeleteId(null); }}
+                <button onClick={() => { deleteNote(confirmDeleteId); setConfirmDeleteId(null); }}
                   className="flex-1 py-2 rounded border border-red-700 bg-red-900/20 text-red-400 hover:bg-red-900/40 hover:border-red-500 active:scale-95 transition-all font-orbitron text-xs tracking-widest"
-                  style={{ boxShadow: "0 0 12px rgba(255,0,0,0.2)" }}
-                >
+                  style={{ boxShadow: "0 0 12px rgba(255,0,0,0.2)" }}>
                   УДАЛИТЬ
                 </button>
               </div>
@@ -347,6 +483,9 @@ const Index = () => {
           </div>
         );
       })()}
+
+      {/* ── CHANGE PASSWORD ── */}
+      {showChangePwd && <ChangePasswordModal userId={user.userId} onClose={() => setShowChangePwd(false)} />}
     </div>
   );
 };

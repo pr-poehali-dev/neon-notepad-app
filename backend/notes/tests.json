@@ -1,0 +1,20 @@
+{
+  "tests": [
+    {
+      "name": "Get notes without userId",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 400,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get notes for user 1",
+      "method": "GET",
+      "path": "/?userId=1",
+      "expectedStatus": 200,
+      "expectedBody": {"notes": []},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

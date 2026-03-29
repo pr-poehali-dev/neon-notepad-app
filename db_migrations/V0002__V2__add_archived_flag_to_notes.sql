@@ -1,0 +1,2 @@
+ALTER TABLE t_p80532359_neon_notepad_app.notes
+ADD COLUMN archived BOOLEAN DEFAULT FALSE;

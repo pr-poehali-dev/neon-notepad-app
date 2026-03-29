@@ -66,6 +66,7 @@ const Index = () => {
   const [editContent, setEditContent] = useState("");
   const [editColor, setEditColor] = useState<Note["color"]>("cyan");
   const [saved, setSaved] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
   const filtered = notes.filter(
@@ -224,7 +225,7 @@ const Index = () => {
                   {formatDate(note.updatedAt)}
                 </span>
                 <button
-                  onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }}
                   className="shrink-0 p-0.5 text-red-800 hover:text-red-400 transition-all ml-1"
                 >
                   <Icon name="X" size={11} />
@@ -299,7 +300,7 @@ const Index = () => {
                   СОХРАНИТЬ
                 </button>
                 <button
-                  onClick={() => activeId && deleteNote(activeId)}
+                  onClick={() => activeId && setConfirmDeleteId(activeId)}
                   className="flex items-center gap-1.5 px-4 py-1.5 rounded border border-red-800 text-red-700 bg-transparent hover:bg-red-900/20 hover:border-red-500 hover:text-red-400 active:scale-95 transition-all duration-150 text-xs font-orbitron tracking-widest"
                   style={{ boxShadow: "0 0 8px rgba(255,0,0,0.15)" }}
                 >
@@ -351,6 +352,61 @@ const Index = () => {
           </>
         )}
       </main>
+
+      {/* ── CONFIRM DELETE MODAL ── */}
+      {confirmDeleteId && (() => {
+        const target = notes.find((n) => n.id === confirmDeleteId);
+        const c = target ? COLORS[target.color] : COLORS.cyan;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+            <div
+              className={`relative w-full max-w-sm mx-4 rounded border ${c.border} bg-black/90 p-6`}
+              style={{ boxShadow: `0 0 30px ${c.glow}40, 0 0 60px rgba(0,0,0,0.8)` }}
+            >
+              {/* Corner decorations */}
+              <div className="absolute top-0 left-0 w-4 h-4 pointer-events-none">
+                <div className={`absolute top-0 left-0 w-4 h-px ${c.dot}`} style={{ boxShadow: `0 0 4px ${c.glow}` }} />
+                <div className={`absolute top-0 left-0 w-px h-4 ${c.dot}`} style={{ boxShadow: `0 0 4px ${c.glow}` }} />
+              </div>
+              <div className="absolute bottom-0 right-0 w-4 h-4 pointer-events-none">
+                <div className={`absolute bottom-0 right-0 w-4 h-px ${c.dot}`} style={{ boxShadow: `0 0 4px ${c.glow}` }} />
+                <div className={`absolute bottom-0 right-0 w-px h-4 ${c.dot}`} style={{ boxShadow: `0 0 4px ${c.glow}` }} />
+              </div>
+
+              <div className="flex items-center gap-3 mb-4">
+                <Icon name="AlertTriangle" size={18} className="text-red-500 shrink-0" />
+                <span className="font-orbitron text-sm tracking-widest text-red-400">УДАЛЕНИЕ ФАЙЛА</span>
+              </div>
+
+              <p className="font-mono-tech text-sm text-slate-400 mb-1">
+                Удалить заметку:
+              </p>
+              <p className={`font-rajdhani font-semibold text-base mb-5 ${c.text} truncate`} style={{ textShadow: `0 0 6px ${c.glow}` }}>
+                "{target?.title || "Без названия"}"
+              </p>
+              <p className="font-mono-tech text-xs text-slate-700 mb-6">
+                [ ДЕЙСТВИЕ НЕОБРАТИМО. ДАННЫЕ БУДУТ УДАЛЕНЫ ]
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 py-2 rounded border border-cyan-900/60 text-cyan-800 hover:border-cyan-700 hover:text-cyan-600 transition-all font-orbitron text-xs tracking-widest"
+                >
+                  ОТМЕНА
+                </button>
+                <button
+                  onClick={() => { deleteNote(confirmDeleteId); setConfirmDeleteId(null); }}
+                  className="flex-1 py-2 rounded border border-red-700 bg-red-900/20 text-red-400 hover:bg-red-900/40 hover:border-red-500 active:scale-95 transition-all font-orbitron text-xs tracking-widest"
+                  style={{ boxShadow: "0 0 12px rgba(255,0,0,0.2)" }}
+                >
+                  УДАЛИТЬ
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

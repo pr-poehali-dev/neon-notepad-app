@@ -297,11 +297,11 @@ const Index = () => {
                 <span className="font-mono-tech text-xs text-cyan-900 hidden md:inline">CTRL+S</span>
                 <button
                   onClick={saveNote}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded border ${col.border} ${col.text} bg-transparent hover:bg-white/5 active:scale-95 transition-all duration-150 text-xs font-orbitron tracking-widest`}
+                  className={`flex items-center justify-center w-8 h-8 rounded border ${col.border} ${col.text} bg-transparent hover:bg-white/5 active:scale-95 transition-all duration-150`}
                   style={{ boxShadow: `0 0 8px ${col.glow}40` }}
+                  title="Сохранить (Ctrl+S)"
                 >
-                  <Icon name="Save" size={12} />
-                  СОХРАНИТЬ
+                  <Icon name="Save" size={14} />
                 </button>
                 <button
                   onClick={() => activeId && setConfirmDeleteId(activeId)}
